@@ -93,7 +93,7 @@ Two process models were created.
 - Average Delivery Days  
 - Monthly Revenue Trend  
 
-![Executive Dashboard](3_Dashboard/Executive_Dashboard.png)
+![Executive Dashboard](_Dashboard/Executive Dashboard.png)
 
 ---
 
@@ -103,7 +103,7 @@ Two process models were created.
 - Abandonment Trend  
 - Delivery vs Review Correlation  
 
-![Customer Dashboard](3_Dashboard/Customer_Insights_Dashboard.png)
+![Customer Dashboard](_Dashboard/Customer_Insights_Dashboard.png)
 
 ---
 
@@ -113,7 +113,7 @@ Two process models were created.
 - Delivery Distribution  
 - Performance Monitoring  
 
-![Operational Dashboard](3_Dashboard/Operational_Dashboard.png)
+![Operational Dashboard](_Dashboard/Operational_Dashboard.png)
 
 ---
 
