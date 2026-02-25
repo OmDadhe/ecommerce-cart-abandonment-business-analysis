@@ -72,7 +72,9 @@ Two process models were created.
 ### Current State (AS-IS)
 - No payment retry mechanism  
 - No SLA monitoring  
-- Reactive operational workflow  
+- Reactive operational workflow
+
+![Current Checkout Process](Process_Modeling/ccp.png)
 
 ### Future State (TO-BE)
 - Transparent pricing  
@@ -80,6 +82,8 @@ Two process models were created.
 - Seller SLA monitoring  
 - Escalation alerts  
 - Post-delivery retention triggers  
+
+![Future Checkout Process](Process_Modeling/fcp.png)
 
 ---
 
