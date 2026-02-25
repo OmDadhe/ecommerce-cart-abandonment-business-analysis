@@ -1,0 +1,351 @@
+E-Commerce Cart Abandonment & Sales Performance Assessment
+
+Objective
+
+The organization is experiencing concerns regarding declining sales and a high cart abandonment rate. The objective of this SQL analysis is to:
+
+• Validate revenue performance trends
+• Assess customer retention behavior
+• Identify cancellation and checkout friction indicators
+• Detect operational bottlenecks impacting satisfaction
+
+Although the dataset does not include explicit cart logs, abandonment has been inferred using behavioral proxies such as cancellation rates and post-purchase dissatisfaction.
+Dataset used: Olist brazillian ecommerse dataset Kaggle
+
+
+2. Queries Used
+
+A. Revenue & Sales Health Analysis
+
+Query 1: Monthly Revenue Trend
+
+Business Objective
+
+To determine whether revenue decline exists and identify seasonal or structural contraction patterns.
+
+SQL Used
+
+WITH monthly_data AS (
+    SELECT
+        DATE_TRUNC(DATE(o.order_purchase_timestamp), MONTH) AS order_month,
+        SUM(p.payment_value) AS monthly_revenue
+    FROM `olist-ba-project.ecommerse_analysis.orders` o
+    JOIN `olist-ba-project.ecommerse_analysis.payments` p
+        ON o.order_id = p.order_id
+    WHERE o.order_status = 'delivered'
+    GROUP BY order_month
+)
+SELECT
+    order_month,
+    monthly_revenue,
+    LAG(monthly_revenue) OVER (ORDER BY order_month) AS prev_revenue,
+    ROUND(
+        SAFE_DIVIDE(
+            monthly_revenue - LAG(monthly_revenue) OVER (ORDER BY order_month),
+            LAG(monthly_revenue) OVER (ORDER BY order_month)
+        ) * 100,
+        2
+    ) AS growth_percent
+FROM monthly_data
+ORDER BY order_month;
+
+
+Key Findings
+
+• Revenue peaked in November 2017 at ~1.15M
+• Growth remained positive through most of 2017
+• 2018 shows moderate volatility but no structural collapse
+• No sustained multi-month decline observed
+
+Output
+
+https://docs.google.com/document/d/1zfYde4l1TGxmHQnZ8QVhrkBSsyxvtDX1neumU7aQ62c/edit?usp=sharing
+
+Interpretation
+
+Revenue performance indicates seasonal volatility rather than severe structural decline. However, fluctuations in 2018 suggest potential operational or customer behavior risks that could impact future stability.
+
+
+
+B. Customer Behavior Analysis
+
+Query 2: New vs Repeat Customers
+
+WITH customer_orders AS (
+    SELECT
+        customer_id,
+        COUNT(order_id) AS total_orders
+    FROM `olist-ba-project.ecommerse_analysis.orders`
+    WHERE order_status = 'delivered'
+    GROUP BY customer_id
+)
+SELECT
+    COUNT(CASE WHEN total_orders = 1 THEN 1 END) AS new_customers,
+    COUNT(CASE WHEN total_orders > 1 THEN 1 END) AS repeat_customers,
+    ROUND(
+        COUNT(CASE WHEN total_orders > 1 THEN 1 END)
+        / COUNT(*) * 100,
+        2
+    ) AS repeat_customer_rate_percent
+FROM customer_orders;
+
+Output:
+https://docs.google.com/document/d/1zfYde4l1TGxmHQnZ8QVhrkBSsyxvtDX1neumU7aQ62c/edit?usp=sharing
+
+Results
+
+• New Customers: 96,478
+• Repeat Customers: 0
+• Repeat Rate: 0%
+
+Interpretation
+
+The dataset structure indicates each transaction is treated as a unique customer instance. This suggests limited measurable repeat purchasing behavior within the dataset, highlighting a potential retention weakness.
+
+From a business perspective, weak repeat purchasing increases reliance on new customer acquisition and heightens vulnerability to perceived abandonment.
+
+
+C. Cart Abandonment Proxy Analysis
+
+Query 3: Cancellation Rate
+
+SELECT
+    COUNT(order_id) AS total_orders,
+    COUNT(CASE WHEN order_status = 'canceled' THEN 1 END) AS cancelled_orders,
+    ROUND(
+        COUNT(CASE WHEN order_status = 'canceled' THEN 1 END)
+        / COUNT(order_id) * 100,
+        2
+    ) AS cancellation_rate_percent
+FROM `olist-ba-project.ecommerse_analysis.orders`;
+
+Output
+https://docs.google.com/document/d/1zfYde4l1TGxmHQnZ8QVhrkBSsyxvtDX1neumU7aQ62c/edit?usp=sharing
+
+Results
+
+• Total Orders: 99,441
+• Cancelled Orders: 625
+• Cancellation Rate: 0.63%
+
+Interpretation
+
+The cancellation rate is relatively low (<1%). While this does not indicate a severe abandonment crisis, cancelled-after-approval cases suggest some checkout friction or payment hesitation.
+
+This implies abandonment risk exists but is not yet critical.
+
+
+D. Operational Impact on Customer Satisfaction
+
+Query 4: Delivery Time vs Review Score
+
+SELECT
+    r.review_score,
+    ROUND(
+        AVG(
+            TIMESTAMP_DIFF(
+                o.order_delivered_customer_date,
+                o.order_purchase_timestamp,
+                DAY
+            )
+        ),
+        2
+    ) AS average_delivery_days
+FROM `olist-ba-project.ecommerse_analysis.orders` o
+JOIN `olist-ba-project.ecommerse_analysis.reviews` r
+    ON o.order_id = r.order_id
+WHERE o.order_status = 'delivered'
+AND o.order_delivered_customer_date IS NOT NULL
+GROUP BY r.review_score
+ORDER BY r.review_score;
+
+Output
+https://docs.google.com/document/d/1zfYde4l1TGxmHQnZ8QVhrkBSsyxvtDX1neumU7aQ62c/edit?usp=sharing
+
+Results
+
+| Review Score | Avg Delivery Days |
+| ------------ | ----------------- |
+| 1            | 20.85 days        |
+| 5            | 10.22 days        |
+
+Interpretation
+
+Customers giving 1-star reviews experienced delivery times nearly twice as long as 5-star customers.
+
+This clearly indicates logistics performance is a major driver of customer dissatisfaction.
+
+Delivery delay is likely a key contributor to reduced repeat behavior and perceived abandonment.
+
+
+Important Note:
+Kindly check the output link as it has all the numeric outputs and visuals as well as Google BigQuery Sql execution.
+Limk : https://docs.google.com/document/d/1zfYde4l1TGxmHQnZ8QVhrkBSsyxvtDX1neumU7aQ62c/edit?usp=sharing
+
+
+
+Overall Conclusion
+
+• Revenue is stable but volatile
+• Cancellation rate is low but present
+• Repeat purchasing is weak
+• Delivery delays strongly correlate with poor reviews
+
+While direct cart abandonment logs are unavailable, behavioral indicators suggest operational inefficiencies may indirectly contribute to customer drop-off risk.
+
+
+Strategic Recommendations (Aligned to Scenario)
+
+Although the observed cancellation rate (0.63%) is low, the analysis reveals structural risks related to customer retention and delivery performance. These risks, if left unaddressed, can gradually contribute to increased abandonment perception and revenue instability. The following recommendations are preventive, data-driven, and operationally actionable.
+
+
+1. Reduce Delivery Cycle Time to Improve Customer Retention
+
+Data Basis
+
+Customers who gave a 1-star review experienced an average delivery time of 20.85 days, whereas customers giving 5-star reviews received their orders in 10.22 days on average. This indicates that dissatisfied customers waited approximately twice as long for delivery.
+
+Why This Works
+
+Delivery time has a direct and measurable relationship with customer satisfaction. Extended delivery cycles reduce perceived reliability and increase the likelihood of negative reviews, refunds, and reduced repeat purchase probability. Since repeat purchasing stabilizes long-term revenue, improving logistics performance directly influences retention and lifetime value.
+
+Reducing delivery time improves:
+
+* Customer satisfaction scores
+* Trust in the platform
+* Repurchase probability
+* Brand credibility
+
+Recommended Actions
+
+* Implement seller-level Service Level Agreement (SLA) benchmarks for dispatch and delivery time.
+* Introduce performance-based ranking in search results prioritizing faster sellers.
+* Establish regional warehousing or inventory pooling for high-demand categories.
+* Monitor average dispatch delay and penalize sellers exceeding defined thresholds.
+
+Expected Business Impact
+
+Improving delivery performance reduces dissatisfaction-driven churn and increases the probability of repeat transactions. This creates revenue stability even if acquisition costs rise.
+
+
+2. Strengthen Customer Retention Strategy
+
+Data Basis
+
+The dataset indicates negligible measurable repeat purchasing behavior using transaction-linked identifiers. This suggests that revenue growth is heavily dependent on new customer acquisition.
+
+Why This Works
+
+Relying primarily on new customer acquisition increases marketing costs and revenue volatility. Retention reduces acquisition dependency and increases profitability. Industry benchmarks indicate that even a 5% increase in retention can significantly improve long-term profitability.
+
+Improving retention:
+
+* Stabilizes revenue
+* Reduces marketing cost pressure
+* Increases customer lifetime value
+* Decreases abandonment perception over time
+
+Recommended Actions
+
+* Introduce a structured loyalty program tied to order completion and review participation.
+* Implement automated post-delivery engagement campaigns within 3–5 days of order completion.
+* Use category-based personalized product recommendations.
+* Create reactivation campaigns targeting customers inactive for 30 days.
+
+Expected Business Impact
+
+Improved repeat purchasing reduces revenue volatility and strengthens lifetime value metrics, mitigating long-term abandonment risk.
+
+
+3. Enhance Checkout Monitoring and Payment Experience
+
+Data Basis
+
+Although the cancellation rate is relatively low (0.63%), cancelled-after-approval cases indicate that some customers drop off after initiating checkout.
+
+Why This Works
+
+Checkout friction compounds at scale. Minor issues such as delayed confirmation, unclear freight charges, or payment validation failures reduce conversion efficiency. Even a marginal improvement in checkout conversion can materially increase total revenue.
+
+Improving checkout transparency:
+
+* Reduces transaction hesitation
+* Improves trust perception
+* Increases conversion rate
+* Reduces late-stage cancellations
+
+Recommended Actions
+
+* Display total payable amount (including freight) early in the checkout process.
+* Implement real-time payment failure tracking dashboards.
+* Reduce payment confirmation latency.
+* Add trust indicators and secure payment messaging during checkout.
+
+Expected Business Impact
+
+A small percentage increase in checkout completion can produce significant incremental revenue due to the scale of transactions.
+
+
+4. Implement Seller Performance Governance
+
+Data Basis
+
+Delivery time is strongly correlated with review scores. This implies variability in seller performance directly affects customer satisfaction.
+
+Why This Works
+
+In marketplace-based eCommerce models, platform reputation depends on seller logistics quality. Underperforming sellers can disproportionately damage customer perception and increase silent churn.
+
+Improving seller governance:
+
+* Improves delivery consistency
+* Enhances review scores
+* Reduces dissatisfaction-driven abandonment
+* Strengthens platform credibility
+
+Recommended Actions
+
+* Develop a seller performance scorecard including average delivery time and review rating.
+* Introduce tier-based visibility (e.g., Preferred Seller, Fast Dispatch Seller).
+* Penalize sellers exceeding delivery time thresholds.
+* Provide logistics performance analytics dashboards to sellers.
+
+Expected Business Impact
+
+Improved seller consistency leads to higher average satisfaction and increased retention probability.
+
+
+5. Proactive Risk Segmentation and Service Recovery
+
+Data Basis
+
+Customers experiencing longer delivery times are more likely to give low review scores. These customers represent high churn risk.
+
+Why This Works
+
+Service recovery is more cost-effective than acquiring new customers. Identifying at-risk customers before churn occurs reduces abandonment perception and protects lifetime value.
+
+Targeting dissatisfied segments:
+
+* Prevents silent churn
+* Improves brand recovery
+* Increases repeat purchase probability
+* Reduces long-term abandonment risk
+
+Recommended Actions
+
+* Identify customers with delivery time greater than 15 days.
+* Segment customers who provided review scores of 1 or 2.
+* Offer apology vouchers or targeted discount incentives.
+* Implement a structured feedback recovery program.
+
+Expected Business Impact
+
+Proactive intervention reduces churn probability and improves long-term revenue sustainability.
+
+
+
+Strategic Positioning Summary
+
+While the current cancellation rate does not indicate a severe abandonment crisis, operational inefficiencies—particularly extended delivery times and weak retention signals—pose structural risks to long-term growth. By strengthening logistics governance, enhancing retention strategy, and improving checkout transparency, the organization can mitigate future abandonment escalation and stabilize revenue performance.
+
