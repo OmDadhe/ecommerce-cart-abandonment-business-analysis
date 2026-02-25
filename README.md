@@ -93,7 +93,7 @@ Two process models were created.
 - Average Delivery Days  
 - Monthly Revenue Trend  
 
-![Executive Dashboard](_Dashboard/Executive Dashboard.png)
+![Executive Dashboard](_Dashboard/Executive_Dashboard.png)
 
 ---
 
